@@ -162,3 +162,164 @@ class Solution {
         return result;
     }
 }
+```
+⏱️ Complexity Analysis
+Time Complexity: O(n)
+We make a single pass (and a few extra loops) over the string s.
+
+Space Complexity: O(1)
+We use only constant extra variables.
+
+# 🌀 Q3. Minimum Jumps to Reach End via Prime Teleportation
+
+[🔗 LeetCode Problem (Premium)](https://leetcode.com/problems/minimum-jumps-to-reach-end-via-prime-teleportation)  
+![Difficulty](https://img.shields.io/badge/Difficulty-Medium-yellow)
+![Status](https://img.shields.io/badge/Status-Attempted-orange)
+![Language](https://img.shields.io/badge/Language-Java-blue.svg)
+
+---
+
+## 📌 Problem Statement
+
+You are given an integer array `nums` of length `n`.  
+You start at index `0`, and your goal is to reach index `n - 1`.
+
+From any index `i`, you may perform one of the following operations:
+
+- **Adjacent Step**: Jump to index `i + 1` or `i - 1` (if within bounds).
+- **Prime Teleportation**: If `nums[i]` is a prime number `p`, teleport to any index `j ≠ i` such that `nums[j] % p == 0`.
+
+Return the **minimum number of jumps** required to reach index `n - 1`.
+
+---
+
+## 🧪 Examples
+
+### Example 1:
+
+**Input:** `nums = [1,2,4,6]`  
+**Output:** `2`  
+**Explanation:**  
+- Step 1: `0 → 1`  
+- Step 2: `1 → 3` via teleportation (2 divides 6)
+
+---
+
+### Example 2:
+
+**Input:** `nums = [2,3,4,7,9]`  
+**Output:** `2`  
+**Explanation:**  
+- Step 1: `0 → 1`  
+- Step 2: `1 → 4` via teleportation (3 divides 9)
+
+---
+
+### Example 3:
+
+**Input:** `nums = [4,6,5,8]`  
+**Output:** `3`  
+**Explanation:**  
+No teleportation possible, move linearly → `0 → 1 → 2 → 3`
+
+---
+
+## 🚀 Approach
+
+We use **Breadth-First Search (BFS)** starting from index `0`.
+
+### Key Concepts:
+
+- Precompute **prime numbers** using Sieve of Eratosthenes.
+- Build a map from prime `p` to a list of indices `i` such that `nums[i] % p == 0`.
+- From each index:
+  - Try `i-1`, `i+1`.
+  - If `nums[i]` is prime and we haven't used prime `p`, teleport to all indices where `nums[j] % p == 0`.
+
+---
+
+## ✅ Java Code
+
+```java
+class Solution {
+    public int minJumps(int[] nums) {
+        int n = nums.length;
+        int maxVal = Arrays.stream(nums).max().getAsInt();
+
+        // Sieve of Eratosthenes
+        boolean[] isPrime = new boolean[maxVal + 1];
+        Arrays.fill(isPrime, true);
+        isPrime[0] = isPrime[1] = false;
+        for (int i = 2; i * i <= maxVal; i++) {
+            if (isPrime[i]) {
+                for (int j = i * i; j <= maxVal; j += i)
+                    isPrime[j] = false;
+            }
+        }
+
+        // Mapping primes to indices
+        Map<Integer, List<Integer>> primeToIndices = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            for (int p = 2; p <= Math.sqrt(nums[i]); p++) {
+                if (nums[i] % p == 0) {
+                    if (isPrime[p]) {
+                        primeToIndices.computeIfAbsent(p, k -> new ArrayList<>()).add(i);
+                    }
+                    int other = nums[i] / p;
+                    if (other != p && isPrime[other]) {
+                        primeToIndices.computeIfAbsent(other, k -> new ArrayList<>()).add(i);
+                    }
+                }
+            }
+            if (isPrime[nums[i]]) {
+                primeToIndices.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
+            }
+        }
+
+        boolean[] visited = new boolean[n];
+        Queue<Integer> queue = new LinkedList<>();
+        queue.offer(0);
+        visited[0] = true;
+        int steps = 0;
+
+        Set<Integer> usedPrimes = new HashSet<>();
+
+        while (!queue.isEmpty()) {
+            int sz = queue.size();
+            while (sz-- > 0) {
+                int idx = queue.poll();
+                if (idx == n - 1) return steps;
+
+                for (int next : new int[]{idx - 1, idx + 1}) {
+                    if (next >= 0 && next < n && !visited[next]) {
+                        visited[next] = true;
+                        queue.offer(next);
+                    }
+                }
+
+                int val = nums[idx];
+                if (isPrime[val] && !usedPrimes.contains(val)) {
+                    usedPrimes.add(val);
+                    for (int j : primeToIndices.getOrDefault(val, Collections.emptyList())) {
+                        if (!visited[j]) {
+                            visited[j] = true;
+                            queue.offer(j);
+                        }
+                    }
+                }
+            }
+            steps++;
+        }
+
+        return -1;
+    }
+}
+```
+⏱️ Complexity Analysis
+Time Complexity:
+O(n * sqrt(maxA) + maxA log log maxA)
+where n = nums.length and maxA = max(nums[i]).
+(Prime factorization + sieve + BFS)
+
+Space Complexity:
+O(n + maxA) for sieve, visited array, and map of primes.
