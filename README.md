@@ -80,7 +80,7 @@ class Solution {
 
 You are given a string `s` consisting of uppercase English letters.
 
-You are allowed to insert **at most one uppercase English letter** at **any position** (including the beginning or end) of the string.
+You are allowed to insert **at most one uppercase English letter** at any position (including the beginning or end) of the string.
 
 Return the **maximum number of "LCT" subsequences** that can be formed in the resulting string after at most one insertion.
 
@@ -88,37 +88,65 @@ A **subsequence** is a non-empty string that can be derived from another string 
 
 ---
 
-## 🔍 Examples
+## ✍️ Examples
 
 ### Example 1:
-**Input:** `s = "LMCT"`  
-**Output:** `2`  
+**Input:**  
+`s = "LMCT"`  
+**Output:**  
+`2`  
 **Explanation:**  
-Insert `'L'` at the beginning → `"LLMCT"`  
-You get two `"LCT"` subsequences:
-- L(0), C(3), T(4)
-- L(1), C(3), T(4)
+We can insert a `"L"` at the beginning to make `"LLMCT"`.  
+This gives 2 subsequences:  
+- L at index 0, C at index 3, T at index 4  
+- L at index 1, C at index 3, T at index 4
 
 ---
-### 🚀 Solution Idea
 
-- Count total subsequences of `"LCT"` without insertion:
-  - Use 3 counters:  
-    - `countL`: counts `'L'`s  
-    - `countLC`: counts subsequences `"LC"`  
-    - `countLCT`: counts full subsequences `"LCT"`
-- Precompute:
-  - `suffixT[i]`: number of `'T'`s in `s[i:]`
-  - `suffixCT[i]`: number of `"CT"` subsequences in `s[i:]`
-- Try inserting each of `'L'`, `'C'`, `'T'` at every position and compute max gain:
-  - Insert `'L'` at position `i`: it can form `"LCT"` with `suffixCT[i]`  
-  - Insert `'C'` at position `i`: it can form `"LCT"` with `prefixL * suffixT[i]`  
-  - Insert `'T'` at position `i`: it can form `"LCT"` with `prefixLC`  
+### Example 2:
+**Input:**  
+`s = "LCCT"`  
+**Output:**  
+`4`  
+**Explanation:**  
+We can insert a `"L"` at the beginning to make `"LLCCT"`.  
+This gives 4 subsequences:  
+- [0, 2, 4]  
+- [0, 3, 4]  
+- [1, 2, 4]  
+- [1, 3, 4]
 
-Take the max of these insertions and add it to the original count.
 ---
 
-### ✅ Code (Java)
+### Example 3:
+**Input:**  
+`s = "L"`  
+**Output:**  
+`0`  
+**Explanation:**  
+It's not possible to obtain a subsequence "LCT" by inserting a single character.
+
+---
+
+## 💡 Solution Idea
+
+The goal is to count how many subsequences "LCT" can be formed, either from the original string or by inserting **at most one character**.
+
+We do the following:
+
+1. Traverse left to right:
+   - Count `L`, `LC`, and `LCT` subsequences.
+2. Traverse right to left:
+   - Build suffix arrays to count future `T` and `CT`.
+3. Try inserting:
+   - `'L'` at every index: It can pair with suffix `CT`.
+   - `'C'` at every index: It can pair with prefix `L` and suffix `T`.
+   - `'T'` at every index: It can pair with prefix `LC`.
+4. The maximum of all such possible insertions is added to the original `LCT` count.
+
+---
+
+## ✅ Java Code
 
 ```java
 class Solution {
@@ -127,48 +155,56 @@ class Solution {
         long countL = 0;
         long countLC = 0;
         long countLCT = 0;
-        for(char c:s.toCharArray()){
-            if(c=='L') countL++;
-            else if(c=='C') countLC+=countL;
-            else if(c=='T') countLCT+=countLC;
+        for (char c : s.toCharArray()) {
+            if (c == 'L') countL++;
+            else if (c == 'C') countLC += countL;
+            else if (c == 'T') countLCT += countLC;
         }
 
-        long[] suffixT = new long[n+1];
-        long[] suffixCT = new long[n+1];
-        for(int i=n-1;i>=0;i--){
+        long[] suffixT = new long[n + 1];
+        long[] suffixCT = new long[n + 1];
+
+        for (int i = n - 1; i >= 0; i--) {
             char ch = s.charAt(i);
-            suffixT[i]=suffixT[i+1];
-            suffixCT[i]=suffixCT[i+1];
-            if(ch=='T') suffixT[i]++;
-            if(ch=='C') suffixCT[i]+=suffixT[i];
+            suffixT[i] = suffixT[i + 1];
+            suffixCT[i] = suffixCT[i + 1];
+            if (ch == 'T') suffixT[i]++;
+            if (ch == 'C') suffixCT[i] += suffixT[i];
         }
 
         long extra = 0;
-        long prefixL=0;
-        long prefixLC=0;
-        for(int i=0;i<=n;i++){
-            extra = Math.max(extra, suffixCT[i]);             // insert 'L'
-            extra = Math.max(extra, prefixL * suffixT[i]);    // insert 'C'
-            extra = Math.max(extra, prefixLC);                // insert 'T'
+        long prefixL = 0;
+        long prefixLC = 0;
 
-            if(i < n){
+        for (int i = 0; i <= n; i++) {
+            // insert 'L'
+            extra = Math.max(extra, suffixCT[i]);
+
+            // insert 'C'
+            extra = Math.max(extra, prefixL * suffixT[i]);
+
+            // insert 'T'
+            extra = Math.max(extra, prefixLC);
+
+            if (i < n) {
                 char ch = s.charAt(i);
-                if(ch=='L') prefixL++;
-                if(ch=='C') prefixLC+=prefixL;
+                if (ch == 'L') prefixL++;
+                if (ch == 'C') prefixLC += prefixL;
             }
         }
 
         return countLCT + extra;
     }
 }
-
 ```
-⏱️ Complexity Analysis
+⏱️ Time and Space Complexity
 Time Complexity: O(n)
-We make a single pass (and a few extra loops) over the string s.
 
-Space Complexity: O(1)
-We use only constant extra variables.
+We perform forward and backward passes through the string.
+
+Space Complexity: O(n)
+
+Two auxiliary arrays suffixT and suffixCT of size n+1 are used.
 
 # 🌀 Q3. Minimum Jumps to Reach End via Prime Teleportation
 
