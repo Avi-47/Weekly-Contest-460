@@ -100,68 +100,68 @@ You get two `"LCT"` subsequences:
 - L(1), C(3), T(4)
 
 ---
-## 🚀 Solution Idea
+### 🚀 Solution Idea
 
-We use a **greedy + prefix count** approach to track possible `LCT` subsequences and simulate all three possible insertions (`L`, `C`, `T`) to find which gives the best boost.
+- Count total subsequences of `"LCT"` without insertion:
+  - Use 3 counters:  
+    - `countL`: counts `'L'`s  
+    - `countLC`: counts subsequences `"LC"`  
+    - `countLCT`: counts full subsequences `"LCT"`
+- Precompute:
+  - `suffixT[i]`: number of `'T'`s in `s[i:]`
+  - `suffixCT[i]`: number of `"CT"` subsequences in `s[i:]`
+- Try inserting each of `'L'`, `'C'`, `'T'` at every position and compute max gain:
+  - Insert `'L'` at position `i`: it can form `"LCT"` with `suffixCT[i]`  
+  - Insert `'C'` at position `i`: it can form `"LCT"` with `prefixL * suffixT[i]`  
+  - Insert `'T'` at position `i`: it can form `"LCT"` with `prefixLC`  
 
-### Key Observations:
-- `"LCT"` subsequence requires `'L'` before `'C'` before `'T'`.
-- Maintain prefix counts:
-  - `countL` = number of `'L'` seen so far
-  - `countLC` = number of `L-C` subsequences
-  - `countLCT` = number of `LCT` subsequences
-- Simulate inserting one of:
-  - `'L'`: boosts `C-T` subsequences
-  - `'C'`: boosts `L-T` subsequences (`countL * remainingT`)
-  - `'T'`: boosts `L-C` subsequences (`countLC`)
-
+Take the max of these insertions and add it to the original count.
 ---
 
-## ✅ Java Code
+### ✅ Code (Java)
 
 ```java
 class Solution {
     public long numOfSubsequences(String s) {
-        long countL = 0, countLC = 0, countLCT = 0;
-        long totalT = 0;
-
-        for (char ch : s.toCharArray()) {
-            if (ch == 'T') totalT++;
+        int n = s.length();
+        long countL = 0;
+        long countLC = 0;
+        long countLCT = 0;
+        for(char c:s.toCharArray()){
+            if(c=='L') countL++;
+            else if(c=='C') countLC+=countL;
+            else if(c=='T') countLCT+=countLC;
         }
 
-        long bestInsertC = 0;
-        long bestInsertT = 0;
-        long remainingT = totalT;
+        long[] suffixT = new long[n+1];
+        long[] suffixCT = new long[n+1];
+        for(int i=n-1;i>=0;i--){
+            char ch = s.charAt(i);
+            suffixT[i]=suffixT[i+1];
+            suffixCT[i]=suffixCT[i+1];
+            if(ch=='T') suffixT[i]++;
+            if(ch=='C') suffixCT[i]+=suffixT[i];
+        }
 
-        for (char ch : s.toCharArray()) {
-            if (ch == 'L') {
-                countL++;
-            } else if (ch == 'C') {
-                countLC += countL;
-            } else if (ch == 'T') {
-                countLCT += countLC;
-                remainingT--; 
+        long extra = 0;
+        long prefixL=0;
+        long prefixLC=0;
+        for(int i=0;i<=n;i++){
+            extra = Math.max(extra, suffixCT[i]);             // insert 'L'
+            extra = Math.max(extra, prefixL * suffixT[i]);    // insert 'C'
+            extra = Math.max(extra, prefixLC);                // insert 'T'
+
+            if(i < n){
+                char ch = s.charAt(i);
+                if(ch=='L') prefixL++;
+                if(ch=='C') prefixLC+=prefixL;
             }
-
-            bestInsertC = Math.max(bestInsertC, countL * remainingT); // Insert C here
-            bestInsertT = Math.max(bestInsertT, countLC);             // Insert T here
         }
 
-        // Simulate inserting L: countC * countT
-        long countC = 0, boostByL = 0;
-        for (char ch : s.toCharArray()) {
-            if (ch == 'C') countC++;
-            else if (ch == 'T') boostByL += countC;
-        }
-
-        long result = countLCT;
-        result = Math.max(result, countLCT + boostByL);      // Insert L
-        result = Math.max(result, countLCT + bestInsertC);   // Insert C
-        result = Math.max(result, countLCT + bestInsertT);   // Insert T
-
-        return result;
+        return countLCT + extra;
     }
 }
+
 ```
 ⏱️ Complexity Analysis
 Time Complexity: O(n)
