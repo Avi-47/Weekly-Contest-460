@@ -65,6 +65,7 @@ class Solution {
         return sum;
     }
 }
+```
 
 # 🧩 Q2. Maximum Number of Subsequences After One Inserting
 
